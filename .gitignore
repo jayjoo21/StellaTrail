@@ -1,0 +1,45 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+bin/
+obj/
+
+# vcpkg directories (large files)
+vcpkg/
+C:/vcpkg/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Executables
+*.exe
+*.dll
+*.so
+*.dylib
+
+# SDL libraries (if downloaded separately)
+SDL2/
+SDL2_image/
+
+# Game assets (if large)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.wav
+*.mp3
+*.ogg
