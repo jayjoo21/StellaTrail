@@ -3,6 +3,9 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <algorithm>
+#include <functional>
+#include <string>
 
 // 수학 상수
 const float PI = 3.14159265359f;
@@ -24,6 +27,12 @@ struct Vector2 {
         return len > 0 ? Vector2(x / len, y / len) : Vector2(0, 0);
     }
 };
+
+// 벡터 길이 제한 함수
+Vector2 clampVector(const Vector2& vec, float maxLength) {
+    float len = vec.length();
+    return len > maxLength ? vec.normalized() * maxLength : vec;
+}
 
 // AABB 구조체
 struct AABB {
@@ -213,11 +222,6 @@ Map map(25, 19, 32); // 25x19 타일, 각 32x32 픽셀
 Uint64 lastTime = 0;
 
 // 유틸리티 함수들
-Vector2 clampVector(const Vector2& vec, float maxLength) {
-    float len = vec.length();
-    return len > maxLength ? vec.normalized() * maxLength : vec;
-}
-
 float lerp(float a, float b, float t) {
     return a + (b - a) * t;
 }
@@ -391,8 +395,8 @@ void render(SDL_Renderer* renderer) {
     // 타일 추가 (Y-Sorting에 포함하지 않음 - 배경이므로 먼저 그림)
     for (const auto& tile : map.tiles) {
         if (tile.isGround) {
-            int gridX = (int)(tile.position.x / map.tileSize);
-            int gridY = (int)(tile.position.y / map.tileSize);
+            int gridX = static_cast<int>(tile.position.x / map.tileSize);
+            int gridY = static_cast<int>(tile.position.y / map.tileSize);
             bool isLight = (gridX + gridY) % 2 == 0;
 
             SDL_SetRenderDrawColor(renderer,
@@ -401,10 +405,10 @@ void render(SDL_Renderer* renderer) {
                 isLight ? 80 : 60, 255);
 
             SDL_Rect tileRect = {
-                (int)(tile.position.x - camera.position.x),
-                (int)(tile.position.y - camera.position.y),
-                (int)tile.size.x,
-                (int)tile.size.y
+                static_cast<int>(tile.position.x - camera.position.x),
+                static_cast<int>(tile.position.y - camera.position.y),
+                static_cast<int>(tile.size.x),
+                static_cast<int>(tile.size.y)
             };
             SDL_RenderFillRect(renderer, &tileRect);
         }
@@ -418,10 +422,10 @@ void render(SDL_Renderer* renderer) {
             [&]() {
                 SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
                 SDL_Rect rockRect = {
-                    (int)(rock.position.x - camera.position.x),
-                    (int)(rock.position.y - camera.position.y),
-                    (int)rock.size.x,
-                    (int)rock.size.y
+                    static_cast<int>(rock.position.x - camera.position.x),
+                    static_cast<int>(rock.position.y - camera.position.y),
+                    static_cast<int>(rock.size.x),
+                    static_cast<int>(rock.size.y)
                 };
                 SDL_RenderFillRect(renderer, &rockRect);
             }
@@ -437,10 +441,10 @@ void render(SDL_Renderer* renderer) {
                 [&]() {
                     SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
                     SDL_Rect partRect = {
-                        (int)(part.position.x - camera.position.x),
-                        (int)(part.position.y - camera.position.y),
-                        (int)part.size.x,
-                        (int)part.size.y
+                        static_cast<int>(part.position.x - camera.position.x),
+                        static_cast<int>(part.position.y - camera.position.y),
+                        static_cast<int>(part.size.x),
+                        static_cast<int>(part.size.y)
                     };
                     SDL_RenderFillRect(renderer, &partRect);
                 }
@@ -454,10 +458,10 @@ void render(SDL_Renderer* renderer) {
         playerYBottom,
         [&]() {
             SDL_Rect destRect = {
-                (int)(player.position.x - camera.position.x),
-                (int)(player.position.y - camera.position.y),
-                (int)player.size.x,
-                (int)player.size.y
+                static_cast<int>(player.position.x - camera.position.x),
+                static_cast<int>(player.position.y - camera.position.y),
+                static_cast<int>(player.size.x),
+                static_cast<int>(player.size.y)
             };
             SDL_RenderCopy(renderer, player.texture, &player.getSourceRect(), &destRect);
         }
@@ -524,9 +528,19 @@ int main(int argc, char* argv[]) {
     }
 
     // 플레이어 텍스처 로드
-    player.texture = IMG_LoadTexture(renderer, "player.png");
+    char* basePath = SDL_GetBasePath();
+    std::string texturePath;
+    if (basePath) {
+        texturePath = std::string(basePath) + "../player.png";
+        SDL_free(basePath);
+    } else {
+        texturePath = "player.png"; // fallback
+    }
+
+    player.texture = IMG_LoadTexture(renderer, texturePath.c_str());
     if (!player.texture) {
-        std::cerr << "플레이어 텍스처 로드 실패: " << IMG_GetError() << std::endl;
+        std::cerr << "Failed to load texture: " << texturePath << std::endl;
+        std::cerr << "IMG_Error: " << IMG_GetError() << std::endl;
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         IMG_Quit();
@@ -555,7 +569,7 @@ int main(int argc, char* argv[]) {
     while (running) {
         // Delta time 계산 (프레임 독립성)
         Uint64 currentTime = SDL_GetPerformanceCounter();
-        float dt = (currentTime - lastTime) / (float)SDL_GetPerformanceFrequency();
+        float dt = static_cast<float>(currentTime - lastTime) / static_cast<float>(SDL_GetPerformanceFrequency());
         lastTime = currentTime;
 
         // dt 상한선 설정 (너무 큰 값 방지)
